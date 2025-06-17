@@ -1,78 +1,49 @@
-using ScoreSystem;
-using Services;
-using System.Collections.Generic;
-using UI;
-using UI.Controllers;
-using UI.View;
+using Zenject;
 using UnityEngine;
+using UI;
+using Services;
+using UI.View;
+using System.Collections.Generic;
+using ScoreSystem;
+using UI.Controllers;
 
-namespace Core
+public class Bootstrapper : MonoInstaller
 {
-    public class Bootstrapper : MonoBehaviour
+    [Header("Prefabs")]
+    [SerializeField] private MainScreenView _mainScreenViewPrefab;
+    [SerializeField] private PanelView _panelViewPrefab;
+
+    [Header("Audio")]
+    [SerializeField] private AudioSource _audioSourcePrefab;
+    [SerializeField] private AudioClip _openClip;
+    [SerializeField] private AudioClip _closeClip;
+
+    public override void InstallBindings()
     {
-        [SerializeField] private MainScreenView _mainScreenView;
-        [SerializeField] private PanelView _panelView;
-        [SerializeField] private AudioSource _audioSource;
-        [SerializeField] private AudioClip _openClip;
-        [SerializeField] private AudioClip _closeClip;
+        Container.Bind<IFadeService>().To<FadeService>().AsSingle();
+        Container.Bind<ISaver>().To<PlayerPrefsSaver>().AsSingle();
 
-        private ServiceLocator _serviceLocator;
-        private Score _score;
-        private UISwitcher _uiSwitcher;
+        Container.Bind<ISoundPlayer>().To<SoundPlayer>().AsSingle()
+            .WithArguments(_audioSourcePrefab, _openClip, _closeClip);
 
-        void Awake()
-        {
-            _serviceLocator = new ServiceLocator();
-            _score = new Score();
-            _score.LoadFromPlayerPrefs();
+        Container.Bind<Score>().AsSingle().NonLazy();
 
-            RegisterServices();
-            CreateControllers();
-            InitializeUISwitcher();
-        }
+        Container.Bind<MainScreenView>()
+            .FromComponentInNewPrefab(_mainScreenViewPrefab)
+            .AsSingle()
+            .NonLazy();
 
-        private void RegisterServices()
-        {
-            _serviceLocator.RegisterService<ISaver>(new PlayerPrefsSaver());
+        Container.Bind<PanelView>()
+            .FromComponentInNewPrefab(_panelViewPrefab)
+            .AsSingle()
+            .NonLazy();
 
-            // Применение с json:
-            // _serviceLocator.RegisterService<ISaver>(new JsonSaver());
+        Container.BindInterfacesAndSelfTo<MainScreenController>().AsSingle();
+        Container.BindInterfacesAndSelfTo<PanelController>().AsSingle();
 
-            _serviceLocator.RegisterService(new FadeService());
-            _serviceLocator.RegisterService(new SoundPlayer(_audioSource, _openClip, _closeClip));
-        }
-
-        private void CreateControllers()
-        {
-            var mainScreenController = new MainScreenController(
-                _mainScreenView,
-                _uiSwitcher);
-
-            var panelController = new PanelController(
-                _panelView,
-                _uiSwitcher,
-                _score,
-                _serviceLocator);
-
-            _serviceLocator.RegisterService(mainScreenController);
-            _serviceLocator.RegisterService(panelController);
-        }
-
-        private void InitializeUISwitcher()
-        {
-            _uiSwitcher = new UISwitcher();
-
-            var states = new Dictionary<UIState, IUIState>
-            {
-                { UIState.MainScreen, _serviceLocator.GetService<MainScreenController>() },
-                { UIState.Panel, _serviceLocator.GetService<PanelController>() }
-            };
-
-            _uiSwitcher.Initialize(
-                states,
-                _serviceLocator.GetService<IFadeService>(),
-                _serviceLocator.GetService<ISoundPlayer>(),
-                _panelView);
-        }
+        Container.Bind<UISwitcher>().FromNewComponentOnNewGameObject()
+            .AsSingle()
+            .WithArguments(new List<UIState> { UIState.MainScreen, UIState.Panel })
+            .NonLazy();
     }
 }

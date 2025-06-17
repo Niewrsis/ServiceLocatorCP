@@ -1,26 +1,30 @@
+using Zenject;
 using UI.View;
 
 namespace UI.Controllers
 {
     public class MainScreenController : IUIState
     {
-        private MainScreenView _mainScreenView;
-        private UISwitcher _uiSwitcher;
+        private readonly MainScreenView _view;
+        private readonly UISwitcher _uiSwitcher;
 
-        public MainScreenController(MainScreenView mainScreenView, UISwitcher uiSwitcher)
+        [Inject]
+        public MainScreenController(
+            MainScreenView view,
+            UISwitcher uiSwitcher)
         {
-            _mainScreenView = mainScreenView;
+            _view = view;
             _uiSwitcher = uiSwitcher;
         }
 
         public void Enter()
         {
-            _mainScreenView.OnOpenButtonClicked += HandleOpenButtonClicked;
+            _view.OnOpenButtonClicked += HandleOpenButtonClicked;
         }
 
         public void Exit()
         {
-            _mainScreenView.OnOpenButtonClicked -= HandleOpenButtonClicked;
+            _view.OnOpenButtonClicked -= HandleOpenButtonClicked;
         }
 
         private void HandleOpenButtonClicked()

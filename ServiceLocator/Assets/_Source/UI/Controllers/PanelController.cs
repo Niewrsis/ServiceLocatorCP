@@ -1,7 +1,8 @@
+using Zenject;
 using UI.View;
 using Services;
-using UnityEngine;
 using ScoreSystem;
+
 
 namespace UI.Controllers
 {
@@ -12,12 +13,17 @@ namespace UI.Controllers
         private readonly Score _score;
         private readonly ISaver _saver;
 
-        public PanelController(PanelView view, UISwitcher uiSwitcher, Score score, IServiceLocator services)
+        [Inject]
+        public PanelController(
+            PanelView view,
+            UISwitcher uiSwitcher,
+            Score score,
+            ISaver saver)
         {
             _view = view;
             _uiSwitcher = uiSwitcher;
             _score = score;
-            _saver = services.GetService<ISaver>();
+            _saver = saver;
         }
 
         public void Enter()
@@ -25,28 +31,21 @@ namespace UI.Controllers
             _view.UpdateScore(_score.CurrentScore);
             _view.OnCloseButtonClicked += HandleCloseButtonClicked;
             _view.OnCollectButtonClicked += HandleCollectButtonClicked;
-            _view.gameObject.SetActive(true);
         }
 
         public void Exit()
         {
             _view.OnCloseButtonClicked -= HandleCloseButtonClicked;
             _view.OnCollectButtonClicked -= HandleCollectButtonClicked;
-            _view.gameObject.SetActive(false);
-
-            // Сохраняем при закрытии
             _saver.SaveScore(_score.CurrentScore);
         }
 
-        private void HandleCloseButtonClicked()
-        {
-            _uiSwitcher.SwitchState(UIState.MainScreen);
-        }
+        private void HandleCloseButtonClicked() => _uiSwitcher.SwitchState(UIState.MainScreen);
 
         private void HandleCollectButtonClicked()
         {
-            _score.AddScore();
-            _view.UpdateScore(_score.CurrentScore);
+            int newScore = _score.AddScore();
+            _view.UpdateScore(newScore);
         }
     }
 }

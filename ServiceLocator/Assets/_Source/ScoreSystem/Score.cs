@@ -9,9 +9,10 @@ namespace ScoreSystem
 
         public int CurrentScore => _currentScore;
 
-        public void AddScore()
+        public int AddScore()
         {
             _currentScore++;
+            return _currentScore;
         }
 
         public void LoadFromPlayerPrefs()
